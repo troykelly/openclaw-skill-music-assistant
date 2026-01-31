@@ -1,0 +1,12 @@
+{
+  "name": "openclaw-skill-music-assistant",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install && pnpm prisma:generate",
+  "remoteEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "GITHUB_TOKEN_TROY": "${localEnv:GITHUB_TOKEN_TROY}"
+  }
+}

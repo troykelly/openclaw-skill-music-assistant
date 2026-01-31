@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PreferenceKind {
+  GENRE
+  DECADE
+  MOOD
+  ARTIST
+}
+
+model User {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  profiles  Profile[]
+  playEvents PlayEvent[]
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String
+  slug      String
+  name      String
+  createdAt DateTime @default(now())
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weights    PreferenceWeight[]
+  playEvents PlayEvent[]
+
+  @@unique([userId, slug])
+}
+
+model PreferenceWeight {
+  id        String   @id @default(cuid())
+  profileId String
+  kind      PreferenceKind
+  key       String
+  weight    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, kind, key])
+}
+
+model PlayEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  profileId   String?
+
+  speakerEntityId String
+  uri         String
+  title       String?
+  artist      String?
+  album       String?
+
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile     Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([speakerEntityId, createdAt])
+}
