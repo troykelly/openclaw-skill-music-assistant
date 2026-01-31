@@ -4,3 +4,4 @@ node_modules
 /.local-test
 .env
 /test/*.js
+/prisma/.local/
