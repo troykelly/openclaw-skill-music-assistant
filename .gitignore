@@ -6,3 +6,4 @@ node_modules
 /test/*.js
 /prisma/.local/
 /prisma/.local-test/
+.worktrees/
