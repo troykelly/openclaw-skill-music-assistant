@@ -75,11 +75,11 @@ export declare function endSession(prisma: PrismaClient, sessionId: string): Pro
 export declare function listSessions(prisma: PrismaClient, options: ListSessionsOptions): Promise<({
     events: {
         title: string | null;
+        id: string;
+        createdAt: Date;
         uri: string;
         artist: string | null;
         album: string | null;
-        id: string;
-        createdAt: Date;
         userId: string;
         speakerEntityId: string;
         playlistUri: string | null;
@@ -107,11 +107,11 @@ export declare function replaySession(prisma: PrismaClient, sessionId: string): 
     session: {
         events: {
             title: string | null;
+            id: string;
+            createdAt: Date;
             uri: string;
             artist: string | null;
             album: string | null;
-            id: string;
-            createdAt: Date;
             userId: string;
             speakerEntityId: string;
             playlistUri: string | null;
@@ -144,11 +144,11 @@ export declare function replaySession(prisma: PrismaClient, sessionId: string): 
  */
 export declare function logPlayEventEnhanced(prisma: PrismaClient, options: LogPlayEventOptions): Promise<{
     title: string | null;
+    id: string;
+    createdAt: Date;
     uri: string;
     artist: string | null;
     album: string | null;
-    id: string;
-    createdAt: Date;
     userId: string;
     speakerEntityId: string;
     playlistUri: string | null;
@@ -164,11 +164,11 @@ export declare function logPlayEventEnhanced(prisma: PrismaClient, options: LogP
  */
 export declare function getRecentHistory(prisma: PrismaClient, options: HistoryQueryOptions): Promise<{
     title: string | null;
+    id: string;
+    createdAt: Date;
     uri: string;
     artist: string | null;
     album: string | null;
-    id: string;
-    createdAt: Date;
     userId: string;
     speakerEntityId: string;
     playlistUri: string | null;
@@ -183,9 +183,9 @@ export declare function getRecentHistory(prisma: PrismaClient, options: HistoryQ
  * Add a track to the avoid list.
  */
 export declare function addAvoidTrack(prisma: PrismaClient, options: AvoidTrackOptions): Promise<{
-    uri: string;
     id: string;
     createdAt: Date;
+    uri: string;
     userId: string;
     reason: string | null;
 }>;
@@ -197,9 +197,9 @@ export declare function removeAvoidTrack(prisma: PrismaClient, options: Omit<Avo
  * Get the avoid list for a user.
  */
 export declare function getAvoidList(prisma: PrismaClient, options: Omit<HistoryQueryOptions, "limit">): Promise<{
-    uri: string;
     id: string;
     createdAt: Date;
+    uri: string;
     userId: string;
     reason: string | null;
 }[]>;

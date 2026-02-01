@@ -16,8 +16,8 @@ export declare function normalizeEntityId(value: string): string;
 export declare function setUserPreference(prisma: PrismaClient, userSlug: string, entityType: PreferenceEntityType, entityId: string, score: number): Promise<{
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     entityType: string;
     entityId: string;
@@ -29,8 +29,8 @@ export declare function setUserPreference(prisma: PrismaClient, userSlug: string
 export declare function setHouseholdPreference(prisma: PrismaClient, householdSlug: string, entityType: PreferenceEntityType, entityId: string, score: number): Promise<{
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     entityType: string;
     entityId: string;
@@ -42,8 +42,8 @@ export declare function setHouseholdPreference(prisma: PrismaClient, householdSl
 export declare function getUserPreferences(prisma: PrismaClient, userSlug: string): Promise<{
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     entityType: string;
     entityId: string;
@@ -55,8 +55,8 @@ export declare function getUserPreferences(prisma: PrismaClient, userSlug: strin
 export declare function getHouseholdPreferences(prisma: PrismaClient, householdSlug: string): Promise<{
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     entityType: string;
     entityId: string;

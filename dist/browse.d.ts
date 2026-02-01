@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import { HaClient } from "./ha-client.js";
+import { PrismaClient } from "./generated/prisma/client.js";
 /** Media type for library browsing */
 export type BrowseMediaType = "artists" | "albums" | "tracks" | "playlists" | "radio";
 /** Options for browsing the library */
@@ -18,6 +19,8 @@ export interface BrowseOptions {
     limit?: number;
     /** Offset for pagination */
     offset?: number;
+    /** Music Assistant config entry ID (auto-discovered if not provided) */
+    configEntryId?: string;
 }
 /** Schema for a library item */
 export declare const LibraryItemSchema: z.ZodObject<{
@@ -106,9 +109,12 @@ export type BrowseResponse = z.infer<typeof BrowseResponseSchema>;
 /**
  * Browse the Music Assistant library via Home Assistant service call.
  *
+ * Uses the get_library service with return_response to fetch library items.
+ *
  * @param client - Home Assistant client
+ * @param prisma - Prisma client for config entry discovery
  * @param options - Browse options
  * @returns Browse response with items
  */
-export declare function browseLibrary(client: HaClient, options: BrowseOptions): Promise<BrowseResponse>;
+export declare function browseLibrary(client: HaClient, prisma: PrismaClient, options: BrowseOptions): Promise<BrowseResponse>;
 //# sourceMappingURL=browse.d.ts.map

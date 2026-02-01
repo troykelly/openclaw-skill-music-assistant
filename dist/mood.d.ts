@@ -45,8 +45,8 @@ export declare function setMood(prisma: PrismaClient, options: SetMoodOptions): 
     name: string;
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     criteria: string;
 }>;
@@ -57,8 +57,8 @@ export declare function getMood(prisma: PrismaClient, options: MoodQueryOptions)
     name: string;
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     criteria: string;
 } | null>;
@@ -69,8 +69,8 @@ export declare function listMoods(prisma: PrismaClient, options: ListMoodsOption
     name: string;
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     criteria: string;
 }[]>;
@@ -85,8 +85,8 @@ export declare function resolveMood(prisma: PrismaClient, options: ResolveMoodOp
     name: string;
     id: string;
     createdAt: Date;
-    userId: string | null;
     updatedAt: Date;
+    userId: string | null;
     householdId: string | null;
     criteria: string;
 } | null>;

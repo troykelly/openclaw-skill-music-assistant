@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import { HaClient } from "./ha-client.js";
+import { PrismaClient } from "./generated/prisma/client.js";
 /** Search filters extracted from query */
 export interface SearchFilters {
     artist?: string;
@@ -28,6 +29,8 @@ export interface SearchOptions {
     limit?: number;
     /** Filter by media type (track, artist, album, playlist) */
     mediaType?: string;
+    /** Music Assistant config entry ID (auto-discovered if not provided) */
+    configEntryId?: string;
 }
 /** Schema for a search result item */
 export declare const SearchResultSchema: z.ZodObject<{
@@ -147,8 +150,9 @@ export declare function parseSearchQuery(query: string): ParsedQuery;
  * Search Music Assistant library.
  *
  * @param client - Home Assistant client
+ * @param prisma - Prisma client for config entry discovery
  * @param options - Search options
  * @returns Search response with results
  */
-export declare function searchMusic(client: HaClient, options: SearchOptions): Promise<SearchResponse>;
+export declare function searchMusic(client: HaClient, prisma: PrismaClient, options: SearchOptions): Promise<SearchResponse>;
 //# sourceMappingURL=search.d.ts.map

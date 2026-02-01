@@ -2,10 +2,12 @@
  * Playback control for Music Assistant.
  *
  * Control media playback on speakers via Home Assistant service calls.
+ * Uses Music Assistant's play_media service for MA URIs (library://, spotify://, etc.)
+ * and falls back to standard media_player.play_media for regular URLs.
  */
 import { HaClient } from "./ha-client.js";
 /** Enqueue mode for playback */
-export type EnqueueMode = "play" | "replace" | "next" | "add";
+export type EnqueueMode = "play" | "replace" | "next" | "add" | "replace_next";
 /** Options for playing media */
 export interface PlayMediaOptions {
     entityId: string;
@@ -30,6 +32,11 @@ export interface QueueOptions {
 }
 /**
  * Play media on a speaker.
+ *
+ * For Music Assistant URIs (library://, spotify://, etc.), uses the
+ * music_assistant.play_media service which can resolve and stream these URIs.
+ *
+ * For regular HTTP URLs, uses the standard media_player.play_media service.
  */
 export declare function playMedia(client: HaClient, options: PlayMediaOptions): Promise<unknown>;
 /**
