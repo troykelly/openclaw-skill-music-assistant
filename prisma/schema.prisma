@@ -71,3 +71,18 @@ model PlayEvent {
   @@index([userId, createdAt])
   @@index([speakerEntityId, createdAt])
 }
+
+/// Cached HA config entry for Music Assistant (or other integrations).
+/// Used to avoid repeated API calls to discover entry IDs.
+model HaConfigEntryCache {
+  id        String   @id @default(cuid())
+  domain    String
+  entryId   String
+  title     String?
+  haUrl     String   // The HA instance URL this was discovered from
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([haUrl, domain, entryId])
+  @@index([domain])
+}
