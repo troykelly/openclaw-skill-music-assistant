@@ -5,7 +5,7 @@
  * and caches them in the local database to avoid repeated API calls.
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/prisma/client.js";
 import { HaClient } from "./ha-client.js";
 
 const MA_DOMAIN = "music_assistant";

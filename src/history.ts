@@ -4,7 +4,7 @@
  * Track listening sessions, play events, and avoid list.
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/prisma/client.js";
 
 /** Options for starting a session */
 export interface StartSessionOptions {
