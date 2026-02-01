@@ -6,10 +6,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 // Import the modules under test directly
-import { HaClient } from "../src/ha-client.js";
-import { listSpeakers } from "../src/speakers.js";
-import { discoverMaEntryIds, getCachedMaEntryIds, cacheMaEntryIds, clearMaCache } from "../src/ma-discovery.js";
-import { makePrisma } from "../src/db.js";
+import { HaClient } from "../src/ha-client.ts";
+import { listSpeakers } from "../src/speakers.ts";
+import { discoverMaEntryIds, getCachedMaEntryIds, cacheMaEntryIds, clearMaCache } from "../src/ma-discovery.ts";
+import { makePrisma } from "../src/db.ts";
 
 /**
  * Integration-style tests for speaker discovery and MA config.

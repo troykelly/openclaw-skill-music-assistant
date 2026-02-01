@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect, beforeEach } from "vitest";
-import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaClient } from "../src/generated/prisma/client.ts";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 
 const TEST_DB_DIR = join(process.cwd(), ".local-test");
 const TEST_DB_PATH = join(TEST_DB_DIR, "prefs-cli.sqlite");
-const CLI_PATH = join(process.cwd(), "dist", "cli.js");
+const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 
 describe("preference CLI commands", () => {
   let db: PrismaClient;

@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { HaClient } from "./ha-client.js";
+import { HaClient } from "./ha-client.ts";
 
 /** Media type for library browsing */
 export type BrowseMediaType = "artists" | "albums" | "tracks" | "playlists" | "radio";
