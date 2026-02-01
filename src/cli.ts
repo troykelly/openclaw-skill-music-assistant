@@ -13,6 +13,7 @@ import {
   type PreferenceEntityType,
 } from "./preferences.js";
 import { browseLibrary, type BrowseMediaType } from "./browse.js";
+import { searchMusic } from "./search.js";
 
 function usage(): never {
   // Keep v1 minimal; SKILL.md is the user-facing contract.
@@ -22,6 +23,7 @@ function usage(): never {
       "  ha-ma speakers\n" +
       "  ha-ma ma-config [--cached] [--refresh]\n" +
       "  ha-ma browse <type> [--parent <id>] [--limit <n>] [--offset <n>]\n" +
+      "  ha-ma search <query> [--limit <n>] [--type <media_type>]\n" +
       "  ha-ma memory log --user <slug> --speaker-entity <entity_id> --uri <uri> [--title ...] [--artist ...] [--album ...]\n" +
       "  ha-ma memory recent --user <slug> [--limit 10]\n" +
       "  ha-ma prefs set --user <slug> --<entity-type> <value> --score <score>\n" +
@@ -94,6 +96,26 @@ async function main() {
       parentId,
       limit,
       offset,
+    });
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(result));
+    return;
+  }
+
+  if (cmd === "search") {
+    const query = sub;
+    if (!query) {
+      usage();
+    }
+
+    const limit = getFlagInt(argv, "--limit", 0) || undefined;
+    const mediaType = getFlag(argv, "--type");
+
+    const client = HaClient.fromEnv();
+    const result = await searchMusic(client, {
+      query,
+      limit,
+      mediaType,
     });
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(result));
