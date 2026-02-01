@@ -54,26 +54,37 @@ function stateToSpeaker(
 
 /**
  * List all media_player entities with enriched information.
+ *
+ * Note: Area and entity registry endpoints may not be available via REST API
+ * on all HA installations. In that case, we fall back to just the media_player
+ * states without area information.
  */
 export async function listSpeakers(client: HaClient): Promise<Speaker[]> {
-  // Fetch in parallel for efficiency
-  const [states, areas, entityRegistry] = await Promise.all([
-    client.getMediaPlayerStates(),
-    client.getAreas(),
-    client.getEntityRegistry(),
-  ]);
+  // Get media player states (this always works via REST)
+  const states = await client.getMediaPlayerStates();
 
-  // Build lookup maps
-  const areaIdToName = new Map<string, string>();
-  for (const area of areas) {
-    areaIdToName.set(area.area_id, area.name);
-  }
+  // Try to get areas and entity registry (may fail with 404 on some setups)
+  let areaIdToName = new Map<string, string>();
+  let entityToArea = new Map<string, string>();
 
-  const entityToArea = new Map<string, string>();
-  for (const entity of entityRegistry) {
-    if (entity.area_id) {
-      entityToArea.set(entity.entity_id, entity.area_id);
+  try {
+    const [areas, entityRegistry] = await Promise.all([
+      client.getAreas(),
+      client.getEntityRegistry(),
+    ]);
+
+    // Build lookup maps
+    for (const area of areas) {
+      areaIdToName.set(area.area_id, area.name);
     }
+
+    for (const entity of entityRegistry) {
+      if (entity.area_id) {
+        entityToArea.set(entity.entity_id, entity.area_id);
+      }
+    }
+  } catch {
+    // Area/entity registry not available via REST API, continue without it
   }
 
   // Convert states to speakers

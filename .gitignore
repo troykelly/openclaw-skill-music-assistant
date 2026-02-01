@@ -6,3 +6,4 @@ node_modules
 /prisma/.local-test/
 .worktrees/
 /src/generated/
+data/

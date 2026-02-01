@@ -18,6 +18,10 @@ export interface Speaker {
 }
 /**
  * List all media_player entities with enriched information.
+ *
+ * Note: Area and entity registry endpoints may not be available via REST API
+ * on all HA installations. In that case, we fall back to just the media_player
+ * states without area information.
  */
 export declare function listSpeakers(client: HaClient): Promise<Speaker[]>;
 //# sourceMappingURL=speakers.d.ts.map

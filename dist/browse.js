@@ -5,6 +5,7 @@
  * Supports hierarchical navigation (artist → albums → tracks).
  */
 import { z } from "zod";
+import { discoverMaEntryIds } from "./ma-discovery.js";
 /** Schema for a library item */
 export const LibraryItemSchema = z.object({
     item_id: z.string(),
@@ -20,21 +21,74 @@ export const LibraryItemSchema = z.object({
 export const BrowseResponseSchema = z.object({
     items: z.array(LibraryItemSchema),
 });
+/** Schema for MA get_library API response */
+const MaLibraryResponseSchema = z.object({
+    items: z.array(z.object({
+        media_type: z.string(),
+        uri: z.string(),
+        name: z.string(),
+        image: z.string().nullable().optional(),
+        artists: z.array(z.object({
+            name: z.string(),
+        }).passthrough()).optional(),
+        album: z.object({
+            name: z.string(),
+        }).passthrough().optional(),
+    }).passthrough()),
+    limit: z.number().optional(),
+    offset: z.number().optional(),
+    media_type: z.string().optional(),
+    order_by: z.string().optional(),
+});
+/**
+ * Transform MA API response to our BrowseResponse format.
+ */
+function transformMaLibraryResponse(maResponse) {
+    const items = maResponse.items.map((item) => ({
+        item_id: item.uri,
+        name: item.name,
+        media_type: item.media_type,
+        uri: item.uri,
+        artist: item.artists?.[0]?.name,
+        album: item.album?.name,
+        image_url: item.image ?? undefined,
+    }));
+    return { items };
+}
 /**
  * Browse the Music Assistant library via Home Assistant service call.
  *
+ * Uses the get_library service with return_response to fetch library items.
+ *
  * @param client - Home Assistant client
+ * @param prisma - Prisma client for config entry discovery
  * @param options - Browse options
  * @returns Browse response with items
  */
-export async function browseLibrary(client, options) {
+export async function browseLibrary(client, prisma, options) {
     const { mediaType, parentId, limit, offset } = options;
+    // Get or discover config entry ID
+    let configEntryId = options.configEntryId;
+    if (!configEntryId) {
+        const discovery = await discoverMaEntryIds(prisma, client, true);
+        if (discovery.entry_ids.length === 0) {
+            throw new Error("No Music Assistant integration found in Home Assistant");
+        }
+        configEntryId = discovery.entry_ids[0];
+    }
     // Build service call payload
+    // Note: MA uses singular media_type names (artist, album, track, playlist, radio)
+    // but the CLI uses plural (artists, albums, tracks, playlists, radio)
+    const singularType = mediaType.replace(/s$/, "");
     const payload = {
-        media_type: mediaType,
+        config_entry_id: configEntryId,
+        media_type: singularType,
     };
+    // Note: MA get_library doesn't support parent_id directly
+    // For hierarchical navigation, you'd need to use a different approach
     if (parentId) {
-        payload.parent_id = parentId;
+        // Store parent_id for potential future use, but MA may not support it
+        payload.search = parentId;
     }
     if (limit !== undefined) {
         payload.limit = limit;
@@ -42,13 +96,13 @@ export async function browseLibrary(client, options) {
     if (offset !== undefined) {
         payload.offset = offset;
     }
-    // Call the Music Assistant service via HA REST API
-    const response = await client.callService("music_assistant", "browse_media", payload);
-    // Parse and validate response
-    const parsed = BrowseResponseSchema.safeParse(response);
-    if (!parsed.success) {
-        throw new Error(`Invalid browse response: ${parsed.error.message}`);
+    // Call the Music Assistant get_library service with return_response
+    const response = await client.callServiceWithResponse("music_assistant", "get_library", payload);
+    // Parse and validate the MA response format
+    const maResult = MaLibraryResponseSchema.safeParse(response);
+    if (!maResult.success) {
+        throw new Error(`Invalid browse response from Music Assistant: ${maResult.error.message}`);
     }
-    return parsed.data;
+    return transformMaLibraryResponse(maResult.data);
 }
 //# sourceMappingURL=browse.js.map

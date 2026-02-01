@@ -287,4 +287,45 @@ export class HaClient {
 
     return response.json();
   }
+
+  /**
+   * Call a Home Assistant service that returns a response.
+   *
+   * Uses the `?return_response` query parameter to get service response data.
+   * This is required for services like music_assistant.search that return data.
+   *
+   * @param domain - Service domain (e.g., "music_assistant")
+   * @param service - Service name (e.g., "search")
+   * @param data - Service call data
+   * @returns The service_response from the result
+   */
+  async callServiceWithResponse(
+    domain: string,
+    service: string,
+    data: Record<string, unknown>
+  ): Promise<unknown> {
+    const url = `${this.baseUrl}/api/services/${domain}/${service}?return_response`;
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`HA service call failed: ${redactError(message)}`);
+    }
+
+    if (!response.ok) {
+      throw new Error(`HA service call returned ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json() as { service_response?: unknown };
+    return result.service_response;
+  }
 }

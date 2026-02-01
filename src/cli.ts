@@ -127,14 +127,19 @@ async function main() {
     const offset = getFlagInt(argv, "--offset", 0) || undefined;
 
     const client = HaClient.fromEnv();
-    const result = await browseLibrary(client, {
-      mediaType,
-      parentId,
-      limit,
-      offset,
-    });
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(result));
+    const prisma = makePrisma();
+    try {
+      const result = await browseLibrary(client, prisma, {
+        mediaType,
+        parentId,
+        limit,
+        offset,
+      });
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify(result));
+    } finally {
+      await prisma.$disconnect();
+    }
     return;
   }
 
@@ -242,13 +247,18 @@ async function main() {
     const mediaType = getFlag(argv, "--type");
 
     const client = HaClient.fromEnv();
-    const result = await searchMusic(client, {
-      query,
-      limit,
-      mediaType,
-    });
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(result));
+    const prisma = makePrisma();
+    try {
+      const result = await searchMusic(client, prisma, {
+        query,
+        limit,
+        mediaType,
+      });
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify(result));
+    } finally {
+      await prisma.$disconnect();
+    }
     return;
   }
 

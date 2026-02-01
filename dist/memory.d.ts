@@ -11,23 +11,23 @@ export type LogPlayEventInput = {
 export declare function ensureUser(prisma: PrismaClient, userSlug: string): Promise<{
     name: string;
     id: string;
-    slug: string;
     createdAt: Date;
+    slug: string;
 }>;
 export declare function ensureProfile(prisma: PrismaClient, userId: string, profileSlug: string): Promise<{
     name: string;
     id: string;
-    slug: string;
     createdAt: Date;
+    slug: string;
     userId: string;
 }>;
 export declare function logPlayEvent(prisma: PrismaClient, input: LogPlayEventInput): Promise<{
     title: string | null;
+    id: string;
+    createdAt: Date;
     uri: string;
     artist: string | null;
     album: string | null;
-    id: string;
-    createdAt: Date;
     userId: string;
     speakerEntityId: string;
     playlistUri: string | null;
@@ -40,11 +40,11 @@ export declare function logPlayEvent(prisma: PrismaClient, input: LogPlayEventIn
 }>;
 export declare function listRecentPlayEvents(prisma: PrismaClient, userSlug: string, limit: number): Promise<{
     title: string | null;
+    id: string;
+    createdAt: Date;
     uri: string;
     artist: string | null;
     album: string | null;
-    id: string;
-    createdAt: Date;
     userId: string;
     speakerEntityId: string;
     playlistUri: string | null;
@@ -64,10 +64,10 @@ export declare function setPreferenceWeight(prisma: PrismaClient, params: {
 }): Promise<{
     id: string;
     createdAt: Date;
+    updatedAt: Date;
     profileId: string;
     kind: PreferenceKind;
     key: string;
     weight: number;
-    updatedAt: Date;
 }>;
 //# sourceMappingURL=memory.d.ts.map

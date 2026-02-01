@@ -263,5 +263,17 @@ export declare class HaClient {
      * @returns Service call response
      */
     callService(domain: string, service: string, data: Record<string, unknown>): Promise<unknown>;
+    /**
+     * Call a Home Assistant service that returns a response.
+     *
+     * Uses the `?return_response` query parameter to get service response data.
+     * This is required for services like music_assistant.search that return data.
+     *
+     * @param domain - Service domain (e.g., "music_assistant")
+     * @param service - Service name (e.g., "search")
+     * @param data - Service call data
+     * @returns The service_response from the result
+     */
+    callServiceWithResponse(domain: string, service: string, data: Record<string, unknown>): Promise<unknown>;
 }
 //# sourceMappingURL=ha-client.d.ts.map
