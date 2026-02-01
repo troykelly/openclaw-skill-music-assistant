@@ -14,6 +14,7 @@ import {
 } from "./preferences.js";
 import { browseLibrary, type BrowseMediaType } from "./browse.js";
 import { searchMusic } from "./search.js";
+import { setMood, getMood, listMoods, deleteMood, type MoodCriteria } from "./mood.js";
 
 function usage(): never {
   // Keep v1 minimal; SKILL.md is the user-facing contract.
@@ -32,6 +33,12 @@ function usage(): never {
       "  ha-ma prefs get --household <slug>\n" +
       "  ha-ma prefs clear --user <slug> --<entity-type> <value>\n" +
       "  ha-ma prefs clear --household <slug> --<entity-type> <value>\n" +
+      "  ha-ma mood set --user <slug> --name <name> --genres <g1,g2> [--decades <d1,d2>] [--energy <low|medium|high>]\n" +
+      "  ha-ma mood set --household <slug> --name <name> --genres <g1,g2> [--energy <level>]\n" +
+      "  ha-ma mood list --user <slug>\n" +
+      "  ha-ma mood list --household <slug>\n" +
+      "  ha-ma mood get --user <slug> --name <name>\n" +
+      "  ha-ma mood delete --user <slug> --name <name>\n" +
       "\n" +
       "Browse types: artists, albums, tracks, playlists, radio\n"
   );
@@ -276,6 +283,96 @@ async function main() {
 
         // eslint-disable-next-line no-console
         console.log(JSON.stringify({ deleted: count }));
+        return;
+      }
+    }
+
+    if (cmd === "mood") {
+      if (!sub) usage();
+
+      if (sub === "set") {
+        const userSlug = getFlag(argv, "--user");
+        const householdSlug = getFlag(argv, "--household");
+        const name = getFlag(argv, "--name");
+
+        if ((!userSlug && !householdSlug) || !name) usage();
+
+        // Build criteria from flags
+        const criteria: MoodCriteria = {};
+        const genres = getFlag(argv, "--genres");
+        const decades = getFlag(argv, "--decades");
+        const artists = getFlag(argv, "--artists");
+        const energy = getFlag(argv, "--energy");
+
+        if (genres) criteria.genres = genres.split(",").map((g) => g.trim());
+        if (decades) criteria.decades = decades.split(",").map((d) => d.trim());
+        if (artists) criteria.artists = artists.split(",").map((a) => a.trim());
+        if (energy && (energy === "low" || energy === "medium" || energy === "high")) {
+          criteria.energy = energy;
+        }
+
+        const mood = await setMood(prisma, { userSlug, householdSlug, name, criteria });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify({
+          id: mood.id,
+          name: mood.name,
+          criteria: JSON.parse(mood.criteria),
+        }));
+        return;
+      }
+
+      if (sub === "list") {
+        const userSlug = getFlag(argv, "--user");
+        const householdSlug = getFlag(argv, "--household");
+
+        if (!userSlug && !householdSlug) usage();
+
+        const moods = await listMoods(prisma, { userSlug, householdSlug });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(moods.map((m) => ({
+          id: m.id,
+          name: m.name,
+          criteria: JSON.parse(m.criteria),
+        }))));
+        return;
+      }
+
+      if (sub === "get") {
+        const userSlug = getFlag(argv, "--user");
+        const householdSlug = getFlag(argv, "--household");
+        const name = getFlag(argv, "--name");
+
+        if ((!userSlug && !householdSlug) || !name) usage();
+
+        const mood = await getMood(prisma, { userSlug, householdSlug, name });
+
+        if (!mood) {
+          // eslint-disable-next-line no-console
+          console.log(JSON.stringify({ found: false }));
+        } else {
+          // eslint-disable-next-line no-console
+          console.log(JSON.stringify({
+            id: mood.id,
+            name: mood.name,
+            criteria: JSON.parse(mood.criteria),
+          }));
+        }
+        return;
+      }
+
+      if (sub === "delete") {
+        const userSlug = getFlag(argv, "--user");
+        const householdSlug = getFlag(argv, "--household");
+        const name = getFlag(argv, "--name");
+
+        if ((!userSlug && !householdSlug) || !name) usage();
+
+        const deleted = await deleteMood(prisma, { userSlug, householdSlug, name });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify({ deleted }));
         return;
       }
     }
