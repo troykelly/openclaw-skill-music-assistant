@@ -4,7 +4,7 @@
  * Control media playback on speakers via Home Assistant service calls.
  */
 
-import { HaClient } from "./ha-client.ts";
+import { HaClient } from "./ha-client.js";
 
 /** Enqueue mode for playback */
 export type EnqueueMode = "play" | "replace" | "next" | "add";

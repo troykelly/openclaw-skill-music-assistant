@@ -1,6 +1,6 @@
-import { PrismaClient } from "./generated/prisma/client.ts";
+import { PrismaClient } from "./generated/prisma/client.js";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { loadConfig } from "./config.ts";
+import { loadConfig } from "./config.js";
 
 export function makePrisma(): PrismaClient {
   const cfg = loadConfig();
