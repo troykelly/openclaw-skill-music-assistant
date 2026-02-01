@@ -90,6 +90,34 @@ ha-ma memory log --user <slug> --speaker-entity "media_player.example" --uri "li
 ha-ma memory recent --user <slug> --limit 10
 ```
 
+### Manage preferences
+
+Set, get, and clear music preferences for users or households.
+
+```bash
+# Set user preference
+ha-ma prefs set --user troy --artist "Daft Punk" --score 0.9
+ha-ma prefs set --user troy --genre trance --score 0.8
+ha-ma prefs set --user troy --decade "90s" --score 0.7
+
+# Set household preference
+ha-ma prefs set --household home --genre jazz --score 0.6
+
+# Get preferences
+ha-ma prefs get --user troy
+ha-ma prefs get --household home
+
+# Clear preference
+ha-ma prefs clear --user troy --artist "Daft Punk"
+ha-ma prefs clear --household home --genre jazz
+```
+
+Supported entity types: `--track`, `--artist`, `--album`, `--genre`, `--decade`, `--year`
+
+Score range: `-1.0` (hate) to `1.0` (love), `0.0` = neutral
+
+Entity IDs are normalized to lowercase kebab-case for consistency.
+
 ## Security
 
 - Tokens are never logged or included in error messages
