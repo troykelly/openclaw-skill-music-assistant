@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { HaClient } from "./ha-client.ts";
+import { HaClient } from "./ha-client.js";
 
 /** Search filters extracted from query */
 export interface SearchFilters {

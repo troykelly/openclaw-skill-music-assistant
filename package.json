@@ -3,28 +3,30 @@
   "version": "0.0.1",
   "description": "OpenClaw skill for controlling Home Assistant Music Assistant - browse, search, play, preferences, moods",
   "type": "module",
-  "main": "src/cli.ts",
+  "main": "dist/cli.js",
   "bin": {
-    "ha-ma": "bin/ha-ma.ts"
+    "ha-ma": "bin/ha-ma.js"
   },
   "files": [
-    "src",
+    "dist",
     "bin",
     "prisma",
     "SKILL.md"
   ],
   "engines": {
-    "node": ">=25"
+    "node": ">=20"
   },
   "scripts": {
-    "build": "prisma generate",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "dev": "prisma generate",
     "test": "pnpm build && vitest run",
     "lint": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.0.0",

@@ -4,7 +4,7 @@
  * Stores and retrieves user/household music preferences.
  */
 
-import { PrismaClient } from "./generated/prisma/client.ts";
+import { PrismaClient } from "./generated/prisma/client.js";
 
 /** Entity types for preferences */
 export type PreferenceEntityType = "track" | "artist" | "album" | "genre" | "decade" | "year";

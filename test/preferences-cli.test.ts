@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 
 const TEST_DB_DIR = join(process.cwd(), ".local-test");
 const TEST_DB_PATH = join(TEST_DB_DIR, "prefs-cli.sqlite");
-const CLI_PATH = join(process.cwd(), "src", "cli.ts");
+const CLI_PATH = join(process.cwd(), "dist", "cli.js");
 
 describe("preference CLI commands", () => {
   let db: PrismaClient;
