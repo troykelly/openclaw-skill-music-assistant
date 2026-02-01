@@ -1,16 +1,32 @@
 {
   "name": "openclaw-skill-music-assistant",
-  "private": true,
+  "version": "1.0.0",
+  "description": "OpenClaw skill for controlling Home Assistant Music Assistant - browse, search, play, preferences, moods",
   "type": "module",
+  "main": "dist/cli.js",
+  "types": "dist/cli.d.ts",
+  "bin": {
+    "ha-ma": "bin/ha-ma.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "prisma",
+    "SKILL.md"
+  ],
   "engines": {
-    "node": ">=25"
+    "node": ">=20"
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json",
     "test": "pnpm build && vitest run",
     "lint": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prisma:generate": "prisma generate",
-    "prisma:migrate:dev": "prisma migrate dev"
+    "prisma:migrate:dev": "prisma migrate dev",
+    "postinstall": "prisma generate",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
@@ -18,8 +34,23 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "prettier": "^3.4.2",
     "prisma": "^6.2.1",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/troykelly/openclaw-skill-music-assistant.git"
+  },
+  "author": "Troy Kelly <troy@troykelly.com>",
+  "license": "MIT",
+  "keywords": [
+    "openclaw",
+    "skill",
+    "home-assistant",
+    "music-assistant",
+    "media-player",
+    "smart-home"
+  ]
 }
