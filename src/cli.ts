@@ -22,6 +22,15 @@ import {
   removeAvoidTrack,
   getAvoidList,
 } from "./history.js";
+import {
+  playMedia,
+  pauseMedia,
+  stopMedia,
+  nextTrack,
+  prevTrack,
+  setVolume,
+  addToQueue,
+} from "./playback.js";
 
 function usage(): never {
   // Keep v1 minimal; SKILL.md is the user-facing contract.
@@ -51,8 +60,16 @@ function usage(): never {
       "  ha-ma history avoid --user <slug> --uri <uri> [--reason <text>]\n" +
       "  ha-ma history unavoid --user <slug> --uri <uri>\n" +
       "  ha-ma history avoidlist --user <slug>\n" +
+      "  ha-ma play --speaker <entity_id> --uri <uri> [--enqueue <mode>]\n" +
+      "  ha-ma pause --speaker <entity_id>\n" +
+      "  ha-ma stop --speaker <entity_id>\n" +
+      "  ha-ma next --speaker <entity_id>\n" +
+      "  ha-ma prev --speaker <entity_id>\n" +
+      "  ha-ma volume --speaker <entity_id> --level <0-100>\n" +
+      "  ha-ma queue --speaker <entity_id> --uri <uri>\n" +
       "\n" +
-      "Browse types: artists, albums, tracks, playlists, radio\n"
+      "Browse types: artists, albums, tracks, playlists, radio\n" +
+      "Enqueue modes: play, replace, next, add\n"
   );
   process.exit(2);
 }
@@ -118,6 +135,100 @@ async function main() {
     });
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(result));
+    return;
+  }
+
+  if (cmd === "play") {
+    const speaker = getFlag(argv, "--speaker");
+    const uri = getFlag(argv, "--uri");
+    const enqueue = getFlag(argv, "--enqueue") as "play" | "replace" | "next" | "add" | undefined;
+
+    if (!speaker || !uri) usage();
+
+    const client = HaClient.fromEnv();
+    await playMedia(client, { entityId: speaker, uri, enqueue });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ success: true, action: "play", speaker, uri }));
+    return;
+  }
+
+  if (cmd === "pause") {
+    const speaker = getFlag(argv, "--speaker");
+    if (!speaker) usage();
+
+    const client = HaClient.fromEnv();
+    await pauseMedia(client, { entityId: speaker });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ success: true, action: "pause", speaker }));
+    return;
+  }
+
+  if (cmd === "stop") {
+    const speaker = getFlag(argv, "--speaker");
+    if (!speaker) usage();
+
+    const client = HaClient.fromEnv();
+    await stopMedia(client, { entityId: speaker });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ success: true, action: "stop", speaker }));
+    return;
+  }
+
+  if (cmd === "next") {
+    const speaker = getFlag(argv, "--speaker");
+    if (!speaker) usage();
+
+    const client = HaClient.fromEnv();
+    await nextTrack(client, { entityId: speaker });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ success: true, action: "next", speaker }));
+    return;
+  }
+
+  if (cmd === "prev") {
+    const speaker = getFlag(argv, "--speaker");
+    if (!speaker) usage();
+
+    const client = HaClient.fromEnv();
+    await prevTrack(client, { entityId: speaker });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ success: true, action: "prev", speaker }));
+    return;
+  }
+
+  if (cmd === "volume") {
+    const speaker = getFlag(argv, "--speaker");
+    const levelStr = getFlag(argv, "--level");
+    if (!speaker || !levelStr) usage();
+
+    const level = parseInt(levelStr, 10);
+    if (level < 0 || level > 100) {
+      throw new Error("Volume level must be between 0 and 100");
+    }
+
+    const client = HaClient.fromEnv();
+    await setVolume(client, { entityId: speaker, level: level / 100 });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ success: true, action: "volume", speaker, level }));
+    return;
+  }
+
+  if (cmd === "queue") {
+    const speaker = getFlag(argv, "--speaker");
+    const uri = getFlag(argv, "--uri");
+    if (!speaker || !uri) usage();
+
+    const client = HaClient.fromEnv();
+    await addToQueue(client, { entityId: speaker, uri });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ success: true, action: "queue", speaker, uri }));
     return;
   }
 
