@@ -169,10 +169,42 @@ Fields:
 - `score`: Relevance score (0-1)
 - Optional: `artist`, `album`, `genre`, `year`, `duration`
 
-### Play from URI (not yet implemented)
+### Playback Control
+
+Control media playback on speakers.
 
 ```bash
-ha-ma play --speaker "<name>" --uri "library://playlist/4" --enqueue replace
+# Play media
+ha-ma play --speaker media_player.living_room --uri "library://track/123"
+ha-ma play --speaker media_player.living_room --uri "library://playlist/1" --enqueue replace
+
+# Basic controls
+ha-ma pause --speaker media_player.living_room
+ha-ma stop --speaker media_player.living_room
+ha-ma next --speaker media_player.living_room
+ha-ma prev --speaker media_player.living_room
+
+# Volume (0-100)
+ha-ma volume --speaker media_player.living_room --level 50
+
+# Add to queue
+ha-ma queue --speaker media_player.living_room --uri "library://track/456"
+```
+
+Enqueue modes:
+- `play` - Play immediately (default)
+- `replace` - Replace current queue
+- `next` - Play next
+- `add` - Add to end of queue
+
+Output (JSON):
+```json
+{
+  "success": true,
+  "action": "play",
+  "speaker": "media_player.living_room",
+  "uri": "library://track/123"
+}
 ```
 
 ### Record a play event (local DB)
