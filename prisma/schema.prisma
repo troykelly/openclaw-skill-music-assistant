@@ -21,6 +21,7 @@ model Household {
   createdAt   DateTime @default(now())
 
   preferences Preference[]
+  moods       Mood[]
 }
 
 model User {
@@ -32,6 +33,7 @@ model User {
   profiles    Profile[]
   playEvents  PlayEvent[]
   preferences Preference[]
+  moods       Mood[]
 }
 
 model Profile {
@@ -116,4 +118,24 @@ model HaConfigEntryCache {
 
   @@unique([haUrl, domain, entryId])
   @@index([domain])
+}
+
+/// Mood-to-music mapping.
+/// Associates mood names with music criteria for easy playback.
+/// Criteria is a JSON object with: genres, decades, artists, energy, tempo, etc.
+model Mood {
+  id          String   @id @default(cuid())
+  userId      String?
+  householdId String?
+  name        String   // e.g., "work", "dinner", "happy"
+  criteria    String   // JSON: {"genres":["trance"],"decades":["90s"],"energy":"high"}
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household? @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@unique([householdId, name])
+  @@index([name])
 }

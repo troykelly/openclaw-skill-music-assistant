@@ -215,6 +215,52 @@ Score range: `-1.0` (hate) to `1.0` (love), `0.0` = neutral
 
 Entity IDs are normalized to lowercase kebab-case for consistency.
 
+### Manage Moods
+
+Create, list, and manage mood-to-music mappings for personalized playback.
+
+```bash
+# Set a user mood
+ha-ma mood set --user troy --name "work" --genres trance,house --decades 90s,2000s --energy high
+ha-ma mood set --user troy --name "sleep" --genres ambient --energy low
+
+# Set a household mood
+ha-ma mood set --household home --name "dinner" --genres jazz,bossa-nova --energy low
+
+# List moods
+ha-ma mood list --user troy
+ha-ma mood list --household home
+
+# Get a specific mood
+ha-ma mood get --user troy --name "work"
+
+# Delete a mood
+ha-ma mood delete --user troy --name "work"
+```
+
+Supported criteria flags:
+- `--genres <list>` - comma-separated genre list
+- `--decades <list>` - comma-separated decades (e.g., "90s,2000s")
+- `--artists <list>` - comma-separated artist names
+- `--energy <level>` - low, medium, or high
+
+Output (JSON):
+```json
+{
+  "id": "mood-1",
+  "name": "work",
+  "criteria": {
+    "genres": ["trance", "house"],
+    "decades": ["90s", "2000s"],
+    "energy": "high"
+  }
+}
+```
+
+Mood resolution:
+- User moods override household moods with the same name
+- When playing by mood, user mood is checked first, then household fallback
+
 ## Security
 
 - Tokens are never logged or included in error messages
