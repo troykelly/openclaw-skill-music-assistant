@@ -11,14 +11,13 @@
     "src",
     "bin",
     "prisma",
-    "scripts",
     "SKILL.md"
   ],
   "engines": {
     "node": ">=25"
   },
   "scripts": {
-    "build": "prisma generate && node scripts/fix-prisma-imports.ts",
+    "build": "prisma generate",
     "test": "pnpm build && vitest run",
     "lint": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --write .",
