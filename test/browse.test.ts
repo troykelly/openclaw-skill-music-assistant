@@ -1,8 +1,8 @@
 import { describe, expect, test, beforeAll, afterAll } from "vitest";
 import { createServer, IncomingMessage, ServerResponse, Server } from "node:http";
 import { AddressInfo } from "node:net";
-import { HaClient } from "../src/ha-client.js";
-import { browseLibrary } from "../src/browse.js";
+import { HaClient } from "../src/ha-client.ts";
+import { browseLibrary } from "../src/browse.ts";
 
 /**
  * Integration tests for Music Assistant library browsing.

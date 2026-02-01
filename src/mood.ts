@@ -4,7 +4,7 @@
  * Associates mood names with music criteria for easy playback.
  */
 
-import { PrismaClient } from "./generated/prisma/client.js";
+import { PrismaClient } from "./generated/prisma/client.ts";
 
 /** Mood criteria for music selection */
 export interface MoodCriteria {

@@ -8,7 +8,7 @@
  */
 
 import { describe, test, expect, beforeEach } from "vitest";
-import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaClient } from "../src/generated/prisma/client.ts";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";

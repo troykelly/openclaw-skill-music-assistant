@@ -2,7 +2,7 @@ import { describe, expect, test, beforeAll, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { makePrisma } from "../src/db.js";
+import { makePrisma } from "../src/db.ts";
 import {
   startSession,
   endSession,
@@ -14,7 +14,7 @@ import {
   removeAvoidTrack,
   getAvoidList,
   isTrackAvoided,
-} from "../src/history.js";
+} from "../src/history.ts";
 
 const repoRoot = path.resolve(__dirname, "..");
 const localDir = path.join(repoRoot, ".local-test");

@@ -39,9 +39,9 @@ beforeAll(() => {
 
 describe("music memory (sqlite+prisma)", () => {
   test("can log and retrieve recent play events", () => {
-    run("node", ["dist/cli.js", "memory", "log", "--user", "troy", "--speaker-entity", "media_player.example", "--uri", "library://track/123", "--title", "Song", "--artist", "Artist"]);
+    run("node", ["src/cli.ts", "memory", "log", "--user", "troy", "--speaker-entity", "media_player.example", "--uri", "library://track/123", "--title", "Song", "--artist", "Artist"]);
 
-    const out = run("node", ["dist/cli.js", "memory", "recent", "--user", "troy", "--limit", "10"]);
+    const out = run("node", ["src/cli.ts", "memory", "recent", "--user", "troy", "--limit", "10"]);
     const events = JSON.parse(out) as Array<{ uri: string; speakerEntityId: string }>;
 
     expect(events.length).toBeGreaterThan(0);

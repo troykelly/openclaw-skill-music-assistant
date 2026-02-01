@@ -1,8 +1,8 @@
-import { makePrisma } from "./db.js";
-import { logPlayEvent, listRecentPlayEvents } from "./memory.js";
-import { HaClient } from "./ha-client.js";
-import { listSpeakers } from "./speakers.js";
-import { discoverMaEntryIds } from "./ma-discovery.js";
+import { makePrisma } from "./db.ts";
+import { logPlayEvent, listRecentPlayEvents } from "./memory.ts";
+import { HaClient } from "./ha-client.ts";
+import { listSpeakers } from "./speakers.ts";
+import { discoverMaEntryIds } from "./ma-discovery.ts";
 import {
   setUserPreference,
   setHouseholdPreference,
@@ -11,17 +11,17 @@ import {
   clearUserPreference,
   clearHouseholdPreference,
   type PreferenceEntityType,
-} from "./preferences.js";
-import { browseLibrary, type BrowseMediaType } from "./browse.js";
-import { searchMusic } from "./search.js";
-import { setMood, getMood, listMoods, deleteMood, type MoodCriteria } from "./mood.js";
+} from "./preferences.ts";
+import { browseLibrary, type BrowseMediaType } from "./browse.ts";
+import { searchMusic } from "./search.ts";
+import { setMood, getMood, listMoods, deleteMood, type MoodCriteria } from "./mood.ts";
 import {
   getRecentHistory,
   listSessions,
   addAvoidTrack,
   removeAvoidTrack,
   getAvoidList,
-} from "./history.js";
+} from "./history.ts";
 import {
   playMedia,
   pauseMedia,
@@ -30,7 +30,7 @@ import {
   prevTrack,
   setVolume,
   addToQueue,
-} from "./playback.js";
+} from "./playback.ts";
 
 function usage(): never {
   // Keep v1 minimal; SKILL.md is the user-facing contract.

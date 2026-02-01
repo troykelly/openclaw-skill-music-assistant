@@ -9,7 +9,8 @@
  * - area_name (if entity is associated with an area)
  */
 
-import { HaClient, HaState, HaArea, HaEntityRegistryEntry } from "./ha-client.js";
+import { HaClient } from "./ha-client.ts";
+import type { HaState } from "./ha-client.ts";
 
 export interface Speaker {
   entity_id: string;

@@ -1,8 +1,8 @@
 import { describe, expect, test, beforeAll, afterAll } from "vitest";
 import { createServer, IncomingMessage, ServerResponse, Server } from "node:http";
 import { AddressInfo } from "node:net";
-import { HaClient } from "../src/ha-client.js";
-import { searchMusic, type SearchResult, parseSearchQuery } from "../src/search.js";
+import { HaClient } from "../src/ha-client.ts";
+import { searchMusic, type SearchResult, parseSearchQuery } from "../src/search.ts";
 
 /**
  * Integration tests for Music Assistant search.

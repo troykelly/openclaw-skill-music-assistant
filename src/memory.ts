@@ -1,4 +1,4 @@
-import { PrismaClient, PreferenceKind } from "./generated/prisma/client.js";
+import { PrismaClient, PreferenceKind } from "./generated/prisma/client.ts";
 
 export type LogPlayEventInput = {
   userSlug: string;

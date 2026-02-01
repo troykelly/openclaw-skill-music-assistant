@@ -2,7 +2,7 @@ import { describe, expect, test, beforeAll, afterAll, beforeEach } from "vitest"
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { makePrisma } from "../src/db.js";
+import { makePrisma } from "../src/db.ts";
 import {
   setMood,
   getMood,
@@ -10,7 +10,7 @@ import {
   deleteMood,
   resolveMood,
   type MoodCriteria,
-} from "../src/mood.js";
+} from "../src/mood.ts";
 
 const repoRoot = path.resolve(__dirname, "..");
 const localDir = path.join(repoRoot, ".local-test");

@@ -247,7 +247,7 @@ describe("HA REST client (stubbed HTTP server)", () => {
 describe("HaClient class", () => {
   test.skip("HaClient is exported from ha-client.ts", async () => {
     // This will be implemented
-    const { HaClient } = await import("../src/ha-client.js");
+    const { HaClient } = await import("../src/ha-client.ts");
     expect(HaClient).toBeDefined();
   });
 });
