@@ -1,9 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/prisma/client.js";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { loadConfig } from "./config.js";
 
 export function makePrisma(): PrismaClient {
   const cfg = loadConfig();
-  // Prisma reads DATABASE_URL from env; set it for this process only.
-  process.env.DATABASE_URL = cfg.databaseUrl;
-  return new PrismaClient();
+  const adapter = new PrismaBetterSqlite3({
+    url: cfg.databaseUrl,
+  });
+  return new PrismaClient({ adapter });
 }
+
+export { PrismaClient };

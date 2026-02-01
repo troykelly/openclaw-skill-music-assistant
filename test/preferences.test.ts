@@ -8,7 +8,8 @@
  */
 
 import { describe, test, expect, beforeEach } from "vitest";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -24,15 +25,16 @@ describe("preference storage", () => {
     rmSync(TEST_DB_DIR, { recursive: true, force: true });
     mkdirSync(TEST_DB_DIR, { recursive: true });
 
-    db = new PrismaClient({
-      datasources: { db: { url: `file:${TEST_DB_PATH}` } },
-    });
-
     // Run migrations
     execFileSync("pnpm", ["prisma:migrate:dev"], {
       stdio: "pipe",
       env: { ...process.env, DATABASE_URL: `file:${TEST_DB_PATH}` },
     });
+
+    const adapter = new PrismaBetterSqlite3({
+      url: `file:${TEST_DB_PATH}`,
+    });
+    db = new PrismaClient({ adapter });
 
     await db.$connect();
   });
