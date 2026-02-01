@@ -34,6 +34,8 @@ model User {
   playEvents  PlayEvent[]
   preferences Preference[]
   moods       Mood[]
+  sessions    ListeningSession[]
+  avoidTracks AvoidTrack[]
 }
 
 model Profile {
@@ -68,20 +70,59 @@ model PlayEvent {
   id          String   @id @default(cuid())
   userId      String
   profileId   String?
+  sessionId   String?
 
   speakerEntityId String
   uri         String
   title       String?
   artist      String?
   album       String?
+  playlistUri String?      // URI of playlist if part of one
+  radioStationUri String?  // URI of radio station if dynamic
+  durationMs  Int?         // How long the track played
+  skipped     Boolean  @default(false)
+  skipReason  String?      // Why it was skipped (e.g., "user", "timeout")
 
   createdAt   DateTime @default(now())
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   profile     Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  session     ListeningSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([speakerEntityId, createdAt])
+  @@index([sessionId])
+}
+
+/// A continuous listening session on a speaker.
+model ListeningSession {
+  id          String   @id @default(cuid())
+  userId      String
+  speakerEntityId String
+  moodName    String?      // If session was started with a mood
+  playlistUri String?      // If session was a playlist
+  radioCriteria String?    // JSON: criteria for dynamic radio if applicable
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events      PlayEvent[]
+
+  @@index([userId, startedAt])
+  @@index([speakerEntityId, startedAt])
+}
+
+/// Tracks the user wants to avoid.
+model AvoidTrack {
+  id          String   @id @default(cuid())
+  userId      String
+  uri         String
+  reason      String?      // Why it's avoided
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, uri])
 }
 
 /// User or household music preference.
