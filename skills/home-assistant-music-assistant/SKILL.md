@@ -115,6 +115,60 @@ Fields:
 - `album`: Album name (for tracks)
 - `duration`: Track duration in seconds (for tracks)
 
+### Search Music
+
+Search for music using natural queries with optional filters.
+
+```bash
+# Simple text search
+ha-ma search "daft punk"
+ha-ma search "90s trance"
+
+# Search with filters
+ha-ma search 'artist:"daft punk"'
+ha-ma search 'genre:trance decade:90s'
+ha-ma search 'happy upbeat genre:pop'
+
+# Limit results
+ha-ma search "electronic" --limit 10
+
+# Filter by media type
+ha-ma search "daft" --type track
+```
+
+Supported filters:
+- `artist:"name"` - search by artist
+- `album:"name"` - search by album
+- `genre:name` - search by genre
+- `decade:90s` - search by decade
+- `year:1999` - search by year
+- `mood:happy` - search by mood keywords
+
+Output (JSON):
+```json
+{
+  "results": [
+    {
+      "item_id": "track-1",
+      "name": "One More Time",
+      "media_type": "track",
+      "uri": "library://track/1",
+      "artist": "Daft Punk",
+      "album": "Discovery",
+      "score": 0.95
+    }
+  ]
+}
+```
+
+Fields:
+- `item_id`: Unique identifier
+- `name`: Display name
+- `media_type`: Type (track, artist, album, playlist)
+- `uri`: URI for playback
+- `score`: Relevance score (0-1)
+- Optional: `artist`, `album`, `genre`, `year`, `duration`
+
 ### Play from URI (not yet implemented)
 
 ```bash
