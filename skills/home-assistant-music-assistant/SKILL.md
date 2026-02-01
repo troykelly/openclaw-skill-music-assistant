@@ -257,6 +257,45 @@ Output (JSON):
 }
 ```
 
+### Play History
+
+View and manage play history, sessions, and avoid list.
+
+```bash
+# Get recent play history
+ha-ma history recent --user troy --limit 20
+
+# List listening sessions
+ha-ma history sessions --user troy --limit 10
+
+# Add track to avoid list
+ha-ma history avoid --user troy --uri "library://track/123" --reason "dont like"
+
+# Remove from avoid list
+ha-ma history unavoid --user troy --uri "library://track/123"
+
+# View avoid list
+ha-ma history avoidlist --user troy
+```
+
+Recent history output:
+```json
+[
+  {
+    "id": "event-1",
+    "uri": "library://track/1",
+    "title": "One More Time",
+    "artist": "Daft Punk",
+    "skipped": false,
+    "createdAt": "2024-01-01T12:00:00Z"
+  }
+]
+```
+
+Sessions output includes track count and mood if applicable.
+
+Avoid list tracks are excluded from future recommendations.
+
 Mood resolution:
 - User moods override household moods with the same name
 - When playing by mood, user mood is checked first, then household fallback

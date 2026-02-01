@@ -15,6 +15,13 @@ import {
 import { browseLibrary, type BrowseMediaType } from "./browse.js";
 import { searchMusic } from "./search.js";
 import { setMood, getMood, listMoods, deleteMood, type MoodCriteria } from "./mood.js";
+import {
+  getRecentHistory,
+  listSessions,
+  addAvoidTrack,
+  removeAvoidTrack,
+  getAvoidList,
+} from "./history.js";
 
 function usage(): never {
   // Keep v1 minimal; SKILL.md is the user-facing contract.
@@ -39,6 +46,11 @@ function usage(): never {
       "  ha-ma mood list --household <slug>\n" +
       "  ha-ma mood get --user <slug> --name <name>\n" +
       "  ha-ma mood delete --user <slug> --name <name>\n" +
+      "  ha-ma history recent --user <slug> [--limit 20]\n" +
+      "  ha-ma history sessions --user <slug> [--limit 10]\n" +
+      "  ha-ma history avoid --user <slug> --uri <uri> [--reason <text>]\n" +
+      "  ha-ma history unavoid --user <slug> --uri <uri>\n" +
+      "  ha-ma history avoidlist --user <slug>\n" +
       "\n" +
       "Browse types: artists, albums, tracks, playlists, radio\n"
   );
@@ -283,6 +295,99 @@ async function main() {
 
         // eslint-disable-next-line no-console
         console.log(JSON.stringify({ deleted: count }));
+        return;
+      }
+    }
+
+    if (cmd === "history") {
+      if (!sub) usage();
+
+      if (sub === "recent") {
+        const userSlug = getFlag(argv, "--user");
+        const limit = getFlagInt(argv, "--limit", 20);
+
+        if (!userSlug) usage();
+
+        const history = await getRecentHistory(prisma, { userSlug, limit });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(history.map((h) => ({
+          id: h.id,
+          uri: h.uri,
+          title: h.title,
+          artist: h.artist,
+          album: h.album,
+          skipped: h.skipped,
+          createdAt: h.createdAt.toISOString(),
+        }))));
+        return;
+      }
+
+      if (sub === "sessions") {
+        const userSlug = getFlag(argv, "--user");
+        const limit = getFlagInt(argv, "--limit", 10);
+
+        if (!userSlug) usage();
+
+        const sessions = await listSessions(prisma, { userSlug, limit });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(sessions.map((s) => ({
+          id: s.id,
+          speakerEntityId: s.speakerEntityId,
+          moodName: s.moodName,
+          startedAt: s.startedAt.toISOString(),
+          endedAt: s.endedAt?.toISOString() ?? null,
+          trackCount: s.events.length,
+        }))));
+        return;
+      }
+
+      if (sub === "avoid") {
+        const userSlug = getFlag(argv, "--user");
+        const uri = getFlag(argv, "--uri");
+        const reason = getFlag(argv, "--reason");
+
+        if (!userSlug || !uri) usage();
+
+        const avoided = await addAvoidTrack(prisma, { userSlug, uri, reason });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify({
+          id: avoided.id,
+          uri: avoided.uri,
+          reason: avoided.reason,
+        }));
+        return;
+      }
+
+      if (sub === "unavoid") {
+        const userSlug = getFlag(argv, "--user");
+        const uri = getFlag(argv, "--uri");
+
+        if (!userSlug || !uri) usage();
+
+        const removed = await removeAvoidTrack(prisma, { userSlug, uri });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify({ removed }));
+        return;
+      }
+
+      if (sub === "avoidlist") {
+        const userSlug = getFlag(argv, "--user");
+
+        if (!userSlug) usage();
+
+        const list = await getAvoidList(prisma, { userSlug });
+
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(list.map((a) => ({
+          id: a.id,
+          uri: a.uri,
+          reason: a.reason,
+          createdAt: a.createdAt.toISOString(),
+        }))));
         return;
       }
     }
