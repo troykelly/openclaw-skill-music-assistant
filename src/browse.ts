@@ -11,7 +11,7 @@ import { PrismaClient } from "./generated/prisma/client.js";
 import { discoverMaEntryIds } from "./ma-discovery.js";
 
 /** Media type for library browsing */
-export type BrowseMediaType = "artists" | "albums" | "tracks" | "playlists" | "radio";
+export type BrowseMediaType = "artists" | "albums" | "tracks" | "playlists" | "radio" | "genres";
 
 /** Options for browsing the library */
 export interface BrowseOptions {
@@ -93,20 +93,39 @@ function transformMaLibraryResponse(
  * Uses the get_library service with return_response to fetch library items.
  *
  * @param client - Home Assistant client
- * @param prisma - Prisma client for config entry discovery
- * @param options - Browse options
+ * @param prismaOrOptions - Prisma client for config entry discovery, or options if configEntryId is provided
+ * @param optionsOrUndefined - Browse options (when prisma is provided)
  * @returns Browse response with items
  */
 export async function browseLibrary(
   client: HaClient,
-  prisma: PrismaClient,
-  options: BrowseOptions
+  prismaOrOptions: PrismaClient | BrowseOptions,
+  optionsOrUndefined?: BrowseOptions
 ): Promise<BrowseResponse> {
+  // Support both signatures:
+  // browseLibrary(client, prisma, options) - full signature
+  // browseLibrary(client, options) - when configEntryId is provided in options
+  let prisma: PrismaClient | undefined;
+  let options: BrowseOptions;
+
+  if (optionsOrUndefined !== undefined) {
+    // Called with (client, prisma, options)
+    prisma = prismaOrOptions as PrismaClient;
+    options = optionsOrUndefined;
+  } else {
+    // Called with (client, options) - configEntryId must be in options
+    options = prismaOrOptions as BrowseOptions;
+    prisma = undefined;
+  }
+
   const { mediaType, parentId, limit, offset } = options;
 
   // Get or discover config entry ID
   let configEntryId = options.configEntryId;
   if (!configEntryId) {
+    if (!prisma) {
+      throw new Error("configEntryId is required when prisma client is not provided");
+    }
     const discovery = await discoverMaEntryIds(prisma, client, true);
     if (discovery.entry_ids.length === 0) {
       throw new Error("No Music Assistant integration found in Home Assistant");

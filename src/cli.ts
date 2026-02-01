@@ -68,7 +68,7 @@ function usage(): never {
       "  ha-ma volume --speaker <entity_id> --level <0-100>\n" +
       "  ha-ma queue --speaker <entity_id> --uri <uri>\n" +
       "\n" +
-      "Browse types: artists, albums, tracks, playlists, radio\n" +
+      "Browse types: artists, albums, tracks, playlists, radio, genres\n" +
       "Enqueue modes: play, replace, next, add\n"
   );
   process.exit(2);
@@ -117,7 +117,7 @@ async function main() {
 
   if (cmd === "browse") {
     const mediaType = sub as BrowseMediaType | undefined;
-    const validTypes: BrowseMediaType[] = ["artists", "albums", "tracks", "playlists", "radio"];
+    const validTypes: BrowseMediaType[] = ["artists", "albums", "tracks", "playlists", "radio", "genres"];
     if (!mediaType || !validTypes.includes(mediaType)) {
       usage();
     }
