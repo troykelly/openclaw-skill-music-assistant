@@ -72,6 +72,49 @@ Output (JSON):
 }
 ```
 
+### Browse Music Library
+
+Browse artists, albums, tracks, playlists, and radio stations in the Music Assistant library.
+
+```bash
+# Browse top-level categories
+ha-ma browse artists
+ha-ma browse albums
+ha-ma browse tracks
+ha-ma browse playlists
+ha-ma browse radio
+
+# Hierarchical navigation (e.g., albums by a specific artist)
+ha-ma browse albums --parent artist-1
+ha-ma browse tracks --parent album-1
+
+# Pagination
+ha-ma browse artists --limit 50 --offset 100
+```
+
+Output (JSON):
+```json
+{
+  "items": [
+    {
+      "item_id": "artist-1",
+      "name": "Daft Punk",
+      "media_type": "artist",
+      "uri": "library://artist/1"
+    }
+  ]
+}
+```
+
+Fields:
+- `item_id`: Unique identifier for the item
+- `name`: Display name
+- `media_type`: Type of media (artist, album, track, playlist, radio)
+- `uri`: URI for playback
+- `artist`: Artist name (for albums/tracks)
+- `album`: Album name (for tracks)
+- `duration`: Track duration in seconds (for tracks)
+
 ### Play from URI (not yet implemented)
 
 ```bash
