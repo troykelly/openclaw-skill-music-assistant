@@ -250,4 +250,41 @@ export class HaClient {
     const entries = await this.getConfigEntries();
     return entries.filter((e) => e.domain === "music_assistant");
   }
+
+  /**
+   * Call a Home Assistant service.
+   *
+   * @param domain - Service domain (e.g., "music_assistant")
+   * @param service - Service name (e.g., "browse_media")
+   * @param data - Service call data
+   * @returns Service call response
+   */
+  async callService(
+    domain: string,
+    service: string,
+    data: Record<string, unknown>
+  ): Promise<unknown> {
+    const url = `${this.baseUrl}/api/services/${domain}/${service}`;
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`HA service call failed: ${redactError(message)}`);
+    }
+
+    if (!response.ok) {
+      throw new Error(`HA service call returned ${response.status}: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }

@@ -12,6 +12,7 @@ import {
   clearHouseholdPreference,
   type PreferenceEntityType,
 } from "./preferences.js";
+import { browseLibrary, type BrowseMediaType } from "./browse.js";
 
 function usage(): never {
   // Keep v1 minimal; SKILL.md is the user-facing contract.
@@ -20,6 +21,7 @@ function usage(): never {
     "Usage:\n" +
       "  ha-ma speakers\n" +
       "  ha-ma ma-config [--cached] [--refresh]\n" +
+      "  ha-ma browse <type> [--parent <id>] [--limit <n>] [--offset <n>]\n" +
       "  ha-ma memory log --user <slug> --speaker-entity <entity_id> --uri <uri> [--title ...] [--artist ...] [--album ...]\n" +
       "  ha-ma memory recent --user <slug> [--limit 10]\n" +
       "  ha-ma prefs set --user <slug> --<entity-type> <value> --score <score>\n" +
@@ -27,7 +29,9 @@ function usage(): never {
       "  ha-ma prefs get --user <slug>\n" +
       "  ha-ma prefs get --household <slug>\n" +
       "  ha-ma prefs clear --user <slug> --<entity-type> <value>\n" +
-      "  ha-ma prefs clear --household <slug> --<entity-type> <value>\n"
+      "  ha-ma prefs clear --household <slug> --<entity-type> <value>\n" +
+      "\n" +
+      "Browse types: artists, albums, tracks, playlists, radio\n"
   );
   process.exit(2);
 }
@@ -70,6 +74,29 @@ async function main() {
     const speakers = await listSpeakers(client);
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(speakers));
+    return;
+  }
+
+  if (cmd === "browse") {
+    const mediaType = sub as BrowseMediaType | undefined;
+    const validTypes: BrowseMediaType[] = ["artists", "albums", "tracks", "playlists", "radio"];
+    if (!mediaType || !validTypes.includes(mediaType)) {
+      usage();
+    }
+
+    const parentId = getFlag(argv, "--parent");
+    const limit = getFlagInt(argv, "--limit", 0) || undefined;
+    const offset = getFlagInt(argv, "--offset", 0) || undefined;
+
+    const client = HaClient.fromEnv();
+    const result = await browseLibrary(client, {
+      mediaType,
+      parentId,
+      limit,
+      offset,
+    });
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(result));
     return;
   }
 
