@@ -9,31 +9,38 @@ import { browseLibrary } from "../src/browse.ts";
  * Uses a stubbed HTTP server to simulate HA REST API.
  */
 
-// Mock browse response data from Music Assistant
+// Mock browse response data from Music Assistant (MA API format)
+// MA API returns: { media_type, uri, name, image?, artists?, album? }
 const mockArtists = [
-  { item_id: "artist-1", name: "Daft Punk", media_type: "artist", uri: "library://artist/1" },
-  { item_id: "artist-2", name: "The Chemical Brothers", media_type: "artist", uri: "library://artist/2" },
-  { item_id: "artist-3", name: "Fatboy Slim", media_type: "artist", uri: "library://artist/3" },
+  { media_type: "artist", uri: "library://artist/1", name: "Daft Punk", image: null },
+  { media_type: "artist", uri: "library://artist/2", name: "The Chemical Brothers", image: null },
+  { media_type: "artist", uri: "library://artist/3", name: "Fatboy Slim", image: null },
 ];
 
 const mockAlbums = [
-  { item_id: "album-1", name: "Discovery", media_type: "album", uri: "library://album/1", artist: "Daft Punk" },
-  { item_id: "album-2", name: "Random Access Memories", media_type: "album", uri: "library://album/2", artist: "Daft Punk" },
+  { media_type: "album", uri: "library://album/1", name: "Discovery", image: null, artists: [{ name: "Daft Punk" }] },
+  { media_type: "album", uri: "library://album/2", name: "Random Access Memories", image: null, artists: [{ name: "Daft Punk" }] },
 ];
 
 const mockTracks = [
-  { item_id: "track-1", name: "One More Time", media_type: "track", uri: "library://track/1", artist: "Daft Punk", album: "Discovery", duration: 320 },
-  { item_id: "track-2", name: "Aerodynamic", media_type: "track", uri: "library://track/2", artist: "Daft Punk", album: "Discovery", duration: 212 },
+  { media_type: "track", uri: "library://track/1", name: "One More Time", image: null, artists: [{ name: "Daft Punk" }], album: { name: "Discovery" } },
+  { media_type: "track", uri: "library://track/2", name: "Aerodynamic", image: null, artists: [{ name: "Daft Punk" }], album: { name: "Discovery" } },
 ];
 
 const mockPlaylists = [
-  { item_id: "playlist-1", name: "Party Mix", media_type: "playlist", uri: "library://playlist/1" },
-  { item_id: "playlist-2", name: "Chill Vibes", media_type: "playlist", uri: "library://playlist/2" },
+  { media_type: "playlist", uri: "library://playlist/1", name: "Party Mix", image: null },
+  { media_type: "playlist", uri: "library://playlist/2", name: "Chill Vibes", image: null },
 ];
 
 const mockRadioStations = [
-  { item_id: "radio-1", name: "Triple J", media_type: "radio", uri: "radio://station/1" },
-  { item_id: "radio-2", name: "BBC Radio 1", media_type: "radio", uri: "radio://station/2" },
+  { media_type: "radio", uri: "radio://station/1", name: "Triple J", image: null },
+  { media_type: "radio", uri: "radio://station/2", name: "BBC Radio 1", image: null },
+];
+
+const mockGenres = [
+  { media_type: "genre", uri: "library://genre/1", name: "Electronic", image: null },
+  { media_type: "genre", uri: "library://genre/2", name: "Rock", image: null },
+  { media_type: "genre", uri: "library://genre/3", name: "Jazz", image: null },
 ];
 
 /**
@@ -63,21 +70,25 @@ function createMockServer(): Server {
             }
           } else {
             // Top-level category browse
+            // Note: browse.ts sends singular media_type (artist, album, track, playlist, radio, genre)
             switch (mediaType) {
-              case "artists":
+              case "artist":
                 items = mockArtists;
                 break;
-              case "albums":
+              case "album":
                 items = mockAlbums;
                 break;
-              case "tracks":
+              case "track":
                 items = mockTracks;
                 break;
-              case "playlists":
+              case "playlist":
                 items = mockPlaylists;
                 break;
               case "radio":
                 items = mockRadioStations;
+                break;
+              case "genre":
+                items = mockGenres;
                 break;
               default:
                 items = [];
@@ -85,7 +96,8 @@ function createMockServer(): Server {
           }
 
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ items }));
+          // HA returns service_response wrapper for return_response calls
+          res.end(JSON.stringify({ service_response: { items } }));
         } catch {
           res.writeHead(400);
           res.end("Bad Request");
@@ -124,30 +136,32 @@ describe("browse library", () => {
 
   test("browses artists in library", async () => {
     const client = new HaClient({ baseUrl: haUrl, token: "test-token" });
-    const result = await browseLibrary(client, { mediaType: "artists" });
+    const result = await browseLibrary(client, { mediaType: "artists", configEntryId: "test-entry-id" });
 
     expect(result.items).toHaveLength(3);
     expect(result.items[0]).toMatchObject({
-      item_id: "artist-1",
+      item_id: "library://artist/1",
       name: "Daft Punk",
       media_type: "artist",
+      uri: "library://artist/1",
     });
   });
 
   test("browses albums in library", async () => {
     const client = new HaClient({ baseUrl: haUrl, token: "test-token" });
-    const result = await browseLibrary(client, { mediaType: "albums" });
+    const result = await browseLibrary(client, { mediaType: "albums", configEntryId: "test-entry-id" });
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
       name: "Discovery",
       media_type: "album",
+      artist: "Daft Punk",
     });
   });
 
   test("browses playlists in library", async () => {
     const client = new HaClient({ baseUrl: haUrl, token: "test-token" });
-    const result = await browseLibrary(client, { mediaType: "playlists" });
+    const result = await browseLibrary(client, { mediaType: "playlists", configEntryId: "test-entry-id" });
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
@@ -158,7 +172,7 @@ describe("browse library", () => {
 
   test("browses radio stations", async () => {
     const client = new HaClient({ baseUrl: haUrl, token: "test-token" });
-    const result = await browseLibrary(client, { mediaType: "radio" });
+    const result = await browseLibrary(client, { mediaType: "radio", configEntryId: "test-entry-id" });
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
@@ -172,6 +186,7 @@ describe("browse library", () => {
     const result = await browseLibrary(client, {
       mediaType: "albums",
       parentId: "artist-1",
+      configEntryId: "test-entry-id",
     });
 
     expect(result.items).toHaveLength(2);
@@ -186,12 +201,34 @@ describe("browse library", () => {
     const result = await browseLibrary(client, {
       mediaType: "tracks",
       parentId: "album-1",
+      configEntryId: "test-entry-id",
     });
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
       name: "One More Time",
       album: "Discovery",
+    });
+  });
+
+  test("browses genres in library", async () => {
+    const client = new HaClient({ baseUrl: haUrl, token: "test-token" });
+    const result = await browseLibrary(client, { mediaType: "genres", configEntryId: "test-entry-id" });
+
+    expect(result.items).toHaveLength(3);
+    expect(result.items[0]).toMatchObject({
+      item_id: "library://genre/1",
+      name: "Electronic",
+      media_type: "genre",
+      uri: "library://genre/1",
+    });
+    expect(result.items[1]).toMatchObject({
+      name: "Rock",
+      media_type: "genre",
+    });
+    expect(result.items[2]).toMatchObject({
+      name: "Jazz",
+      media_type: "genre",
     });
   });
 });
