@@ -14,14 +14,24 @@ enum PreferenceKind {
   ARTIST
 }
 
+model Household {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  createdAt   DateTime @default(now())
+
+  preferences Preference[]
+}
+
 model User {
   id        String   @id @default(cuid())
   slug      String   @unique
   name      String
   createdAt DateTime @default(now())
 
-  profiles  Profile[]
-  playEvents PlayEvent[]
+  profiles    Profile[]
+  playEvents  PlayEvent[]
+  preferences Preference[]
 }
 
 model Profile {
@@ -70,6 +80,27 @@ model PlayEvent {
 
   @@index([userId, createdAt])
   @@index([speakerEntityId, createdAt])
+}
+
+/// User or household music preference.
+/// Stores likes/dislikes for tracks, artists, albums, genres, decades, years.
+/// Score range: -1.0 (hate) to 1.0 (love), 0.0 = neutral
+model Preference {
+  id          String   @id @default(cuid())
+  userId      String?
+  householdId String?
+  entityType  String   // track, artist, album, genre, decade, year
+  entityId    String   // identifier for the entity
+  score       Float    // -1.0 to 1.0
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household? @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId])
+  @@unique([householdId, entityType, entityId])
+  @@index([entityType, entityId])
 }
 
 /// Cached HA config entry for Music Assistant (or other integrations).
