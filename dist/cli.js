@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { makePrisma } from "./db.js";
 import { logPlayEvent, listRecentPlayEvents } from "./memory.js";
 import { HaClient } from "./ha-client.js";
@@ -44,7 +45,7 @@ function usage() {
         "  ha-ma volume --speaker <entity_id> --level <0-100>\n" +
         "  ha-ma queue --speaker <entity_id> --uri <uri>\n" +
         "\n" +
-        "Browse types: artists, albums, tracks, playlists, radio\n" +
+        "Browse types: artists, albums, tracks, playlists, radio, genres\n" +
         "Enqueue modes: play, replace, next, add\n");
     process.exit(2);
 }
@@ -90,7 +91,7 @@ async function main() {
     }
     if (cmd === "browse") {
         const mediaType = sub;
-        const validTypes = ["artists", "albums", "tracks", "playlists", "radio"];
+        const validTypes = ["artists", "albums", "tracks", "playlists", "radio", "genres"];
         if (!mediaType || !validTypes.includes(mediaType)) {
             usage();
         }

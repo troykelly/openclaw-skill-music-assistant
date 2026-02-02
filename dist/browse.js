@@ -61,15 +61,33 @@ function transformMaLibraryResponse(maResponse) {
  * Uses the get_library service with return_response to fetch library items.
  *
  * @param client - Home Assistant client
- * @param prisma - Prisma client for config entry discovery
- * @param options - Browse options
+ * @param prismaOrOptions - Prisma client for config entry discovery, or options if configEntryId is provided
+ * @param optionsOrUndefined - Browse options (when prisma is provided)
  * @returns Browse response with items
  */
-export async function browseLibrary(client, prisma, options) {
+export async function browseLibrary(client, prismaOrOptions, optionsOrUndefined) {
+    // Support both signatures:
+    // browseLibrary(client, prisma, options) - full signature
+    // browseLibrary(client, options) - when configEntryId is provided in options
+    let prisma;
+    let options;
+    if (optionsOrUndefined !== undefined) {
+        // Called with (client, prisma, options)
+        prisma = prismaOrOptions;
+        options = optionsOrUndefined;
+    }
+    else {
+        // Called with (client, options) - configEntryId must be in options
+        options = prismaOrOptions;
+        prisma = undefined;
+    }
     const { mediaType, parentId, limit, offset } = options;
     // Get or discover config entry ID
     let configEntryId = options.configEntryId;
     if (!configEntryId) {
+        if (!prisma) {
+            throw new Error("configEntryId is required when prisma client is not provided");
+        }
         const discovery = await discoverMaEntryIds(prisma, client, true);
         if (discovery.entry_ids.length === 0) {
             throw new Error("No Music Assistant integration found in Home Assistant");

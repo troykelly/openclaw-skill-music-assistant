@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { makePrisma } from "./db.js";
 import { logPlayEvent, listRecentPlayEvents } from "./memory.js";
 import { HaClient } from "./ha-client.js";
