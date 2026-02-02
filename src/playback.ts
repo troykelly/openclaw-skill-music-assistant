@@ -4,19 +4,51 @@
  * Control media playback on speakers via Home Assistant service calls.
  * Uses Music Assistant's play_media service for MA URIs (library://, spotify://, etc.)
  * and falls back to standard media_player.play_media for regular URLs.
+ *
+ * Media type behavior with play_media:
+ * - track, album, artist: Support search-based playback (media_id can be a search term)
+ * - playlist, radio, podcast: Require URI (search term will cause 500 error)
+ *
+ * For playlist/radio/podcast, use playBySearch() which searches first then plays by URI.
  */
 
+import { z } from "zod";
 import { HaClient } from "./ha-client.js";
 
 /** Enqueue mode for playback */
 export type EnqueueMode = "play" | "replace" | "next" | "add" | "replace_next";
 
+/** Media types that support search-based playback */
+export const SEARCH_PLAYABLE_TYPES = ["track", "album", "artist"] as const;
+
+/** Media types that require URI-based playback (search term causes 500) */
+export const URI_ONLY_TYPES = ["playlist", "radio", "podcast", "audiobook", "folder"] as const;
+
+/** All supported media types */
+export type MediaType = (typeof SEARCH_PLAYABLE_TYPES)[number] | (typeof URI_ONLY_TYPES)[number];
+
 /** Options for playing media */
 export interface PlayMediaOptions {
   entityId: string;
+  /** URI (library://..., spotify://...) or search term (for supported types) */
   uri: string;
   mediaType?: string;
   enqueue?: EnqueueMode;
+  /** Enable radio mode for continuous playback */
+  radioMode?: boolean;
+}
+
+/** Options for playing by search */
+export interface PlayBySearchOptions {
+  entityId: string;
+  /** Search query */
+  query: string;
+  /** Media type to search for and play */
+  mediaType: MediaType;
+  /** Music Assistant config entry ID (required for search) */
+  configEntryId: string;
+  enqueue?: EnqueueMode;
+  radioMode?: boolean;
 }
 
 /** Options for basic playback commands */
@@ -41,7 +73,7 @@ export interface QueueOptions {
  * Check if a URI is a Music Assistant URI that needs to go through MA service.
  * MA URIs include: library://, spotify://, qobuz://, tidal://, ytmusic://, etc.
  */
-function isMusicAssistantUri(uri: string): boolean {
+export function isMusicAssistantUri(uri: string): boolean {
   // MA URIs have a custom scheme (not http/https)
   // Common patterns: library://, spotify://, opensubsonic--xxx://
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
@@ -49,6 +81,13 @@ function isMusicAssistantUri(uri: string): boolean {
   }
   // Check for scheme:// pattern
   return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(uri);
+}
+
+/**
+ * Check if a media type supports search-based playback.
+ */
+export function supportsSearchPlayback(mediaType: string): boolean {
+  return (SEARCH_PLAYABLE_TYPES as readonly string[]).includes(mediaType.toLowerCase());
 }
 
 /**
@@ -73,6 +112,23 @@ function inferMediaType(uri: string): string | undefined {
   return undefined;
 }
 
+// Schema for search response
+const SearchResultItemSchema = z.object({
+  media_type: z.string(),
+  uri: z.string(),
+  name: z.string(),
+}).passthrough();
+
+const SearchResponseSchema = z.object({
+  artists: z.array(SearchResultItemSchema).optional().default([]),
+  albums: z.array(SearchResultItemSchema).optional().default([]),
+  tracks: z.array(SearchResultItemSchema).optional().default([]),
+  playlists: z.array(SearchResultItemSchema).optional().default([]),
+  radio: z.array(SearchResultItemSchema).optional().default([]),
+  audiobooks: z.array(SearchResultItemSchema).optional().default([]),
+  podcasts: z.array(SearchResultItemSchema).optional().default([]),
+});
+
 /**
  * Play media on a speaker.
  *
@@ -80,9 +136,12 @@ function inferMediaType(uri: string): string | undefined {
  * music_assistant.play_media service which can resolve and stream these URIs.
  *
  * For regular HTTP URLs, uses the standard media_player.play_media service.
+ *
+ * IMPORTANT: For playlist/radio/podcast types, passing a search term instead of
+ * a URI will cause a 500 error. Use playBySearch() for those types.
  */
 export async function playMedia(client: HaClient, options: PlayMediaOptions) {
-  const { entityId, uri, mediaType, enqueue } = options;
+  const { entityId, uri, mediaType, enqueue, radioMode } = options;
 
   if (isMusicAssistantUri(uri)) {
     // Use Music Assistant's play_media service for MA URIs
@@ -101,6 +160,38 @@ export async function playMedia(client: HaClient, options: PlayMediaOptions) {
       data.enqueue = enqueue;
     }
 
+    if (radioMode !== undefined) {
+      data.radio_mode = radioMode;
+    }
+
+    return client.callService("music_assistant", "play_media", data);
+  }
+
+  // For non-URI input (search term), check if the media type supports it
+  const type = mediaType?.toLowerCase();
+  if (type && !supportsSearchPlayback(type)) {
+    throw new Error(
+      `Media type "${type}" does not support search-based playback. ` +
+      `Use a URI (e.g., library://playlist/...) or use playBySearch() to search first.`
+    );
+  }
+
+  // If it's a search term with a supported type, use MA's play_media
+  if (type && supportsSearchPlayback(type)) {
+    const data: Record<string, unknown> = {
+      entity_id: entityId,
+      media_id: uri, // MA will search for this
+      media_type: type,
+    };
+
+    if (enqueue) {
+      data.enqueue = enqueue;
+    }
+
+    if (radioMode !== undefined) {
+      data.radio_mode = radioMode;
+    }
+
     return client.callService("music_assistant", "play_media", data);
   }
 
@@ -116,6 +207,108 @@ export async function playMedia(client: HaClient, options: PlayMediaOptions) {
   }
 
   return client.callService("media_player", "play_media", data);
+}
+
+/**
+ * Play media by searching first, then playing the first result.
+ *
+ * This is required for media types that don't support search-based playback:
+ * - playlist
+ * - radio
+ * - podcast
+ * - audiobook
+ *
+ * The function will:
+ * 1. Search Music Assistant for items matching the query
+ * 2. Get the URI from the first matching result
+ * 3. Call play_media with the URI
+ *
+ * @throws Error if no matching items are found
+ */
+export async function playBySearch(client: HaClient, options: PlayBySearchOptions): Promise<{
+  played: boolean;
+  uri?: string;
+  name?: string;
+  searchResults: number;
+}> {
+  const { entityId, query, mediaType, configEntryId, enqueue, radioMode } = options;
+
+  // Search for matching items
+  const searchResponse = await client.callServiceWithResponse(
+    "music_assistant",
+    "search",
+    {
+      config_entry_id: configEntryId,
+      name: query,
+      media_type: [mediaType],
+      limit: 5,
+    }
+  );
+
+  const parsed = SearchResponseSchema.safeParse(searchResponse);
+  if (!parsed.success) {
+    throw new Error(`Invalid search response: ${parsed.error.message}`);
+  }
+
+  // Find matching items based on media type
+  let items: { uri: string; name: string }[] = [];
+  
+  switch (mediaType) {
+    case "track":
+      items = parsed.data.tracks;
+      break;
+    case "album":
+      items = parsed.data.albums;
+      break;
+    case "artist":
+      items = parsed.data.artists;
+      break;
+    case "playlist":
+      items = parsed.data.playlists;
+      break;
+    case "radio":
+      items = parsed.data.radio;
+      break;
+    case "podcast":
+      items = parsed.data.podcasts;
+      break;
+    case "audiobook":
+      items = parsed.data.audiobooks;
+      break;
+    default:
+      // Try all categories
+      items = [
+        ...parsed.data.tracks,
+        ...parsed.data.albums,
+        ...parsed.data.artists,
+        ...parsed.data.playlists,
+        ...parsed.data.radio,
+      ];
+  }
+
+  if (items.length === 0) {
+    return {
+      played: false,
+      searchResults: 0,
+    };
+  }
+
+  // Play the first result
+  const firstResult = items[0];
+  await playMedia(client, {
+    entityId,
+    uri: firstResult.uri,
+    mediaType,
+    enqueue,
+    radioMode,
+  });
+
+  return {
+    played: true,
+    uri: firstResult.uri,
+    name: firstResult.name,
+    searchResults: items.length,
+  };
 }
 
 /**
