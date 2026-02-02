@@ -8,7 +8,7 @@ import { z } from "zod";
 import { HaClient } from "./ha-client.js";
 import { PrismaClient } from "./generated/prisma/client.js";
 /** Media type for library browsing */
-export type BrowseMediaType = "artists" | "albums" | "tracks" | "playlists" | "radio";
+export type BrowseMediaType = "artists" | "albums" | "tracks" | "playlists" | "radio" | "genres";
 /** Options for browsing the library */
 export interface BrowseOptions {
     /** The type of media to browse */
@@ -112,9 +112,9 @@ export type BrowseResponse = z.infer<typeof BrowseResponseSchema>;
  * Uses the get_library service with return_response to fetch library items.
  *
  * @param client - Home Assistant client
- * @param prisma - Prisma client for config entry discovery
- * @param options - Browse options
+ * @param prismaOrOptions - Prisma client for config entry discovery, or options if configEntryId is provided
+ * @param optionsOrUndefined - Browse options (when prisma is provided)
  * @returns Browse response with items
  */
-export declare function browseLibrary(client: HaClient, prisma: PrismaClient, options: BrowseOptions): Promise<BrowseResponse>;
+export declare function browseLibrary(client: HaClient, prismaOrOptions: PrismaClient | BrowseOptions, optionsOrUndefined?: BrowseOptions): Promise<BrowseResponse>;
 //# sourceMappingURL=browse.d.ts.map
