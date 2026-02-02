@@ -337,3 +337,108 @@ describe("Music Assistant discovery and caching", () => {
     }
   });
 });
+
+/**
+ * Tests for graceful 404 handling on area/entity registry endpoints.
+ * Issue #29: Some HA installations return 404 for these optional endpoints.
+ */
+describe("listSpeakers with 404 on registry endpoints", () => {
+  let server: Server;
+  let haUrl: string;
+
+  beforeAll(async () => {
+    // Create stub server that returns 404 for area and entity registry
+    server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      if (req.url === "/api/states") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(mockStates));
+      } else if (req.url === "/api/config/area_registry/list") {
+        // Simulate 404 - endpoint not available
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("Not Found");
+      } else if (req.url === "/api/config/entity_registry/list") {
+        // Simulate 404 - endpoint not available
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("Not Found");
+      } else {
+        res.writeHead(404);
+        res.end("Not Found");
+      }
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      server.on("error", reject);
+      server.listen(0, "127.0.0.1", () => {
+        const addr = server.address() as AddressInfo;
+        haUrl = `http://127.0.0.1:${addr.port}`;
+        resolve();
+      });
+    });
+  }, 60000);
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  });
+
+  test("returns speakers without area info when registry returns 404", async () => {
+    const client = new HaClient({ baseUrl: haUrl, token: "test-token" });
+
+    // This should NOT throw - it should gracefully handle 404
+    const speakers = await listSpeakers(client);
+
+    // Should still have media_player entities
+    expect(speakers.length).toBeGreaterThan(0);
+    expect(speakers.every((s) => s.entity_id.startsWith("media_player."))).toBe(true);
+
+    // Should have basic speaker info
+    const livingRoom = speakers.find((s) => s.entity_id === "media_player.living_room");
+    expect(livingRoom).toBeDefined();
+    expect(livingRoom?.friendly_name).toBe("Living Room Speaker");
+    expect(livingRoom?.state).toBe("playing");
+    expect(livingRoom?.volume).toBe(0.5);
+
+    // Area should be undefined (not enriched due to 404)
+    expect(livingRoom?.area_name).toBeUndefined();
+  });
+
+  test("handles partial 404 (only area_registry fails)", async () => {
+    // Create a new server that returns 404 only for areas
+    const partialServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+      if (req.url === "/api/states") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(mockStates));
+      } else if (req.url === "/api/config/area_registry/list") {
+        res.writeHead(404);
+        res.end("Not Found");
+      } else if (req.url === "/api/config/entity_registry/list") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(mockEntityRegistry));
+      } else {
+        res.writeHead(404);
+        res.end("Not Found");
+      }
+    });
+
+    await new Promise<void>((resolve) => {
+      partialServer.listen(0, "127.0.0.1", () => resolve());
+    });
+
+    const addr = partialServer.address() as AddressInfo;
+    const partialUrl = `http://127.0.0.1:${addr.port}`;
+    const client = new HaClient({ baseUrl: partialUrl, token: "test-token" });
+
+    // Should handle gracefully even when just one endpoint fails
+    const speakers = await listSpeakers(client);
+    expect(speakers.length).toBeGreaterThan(0);
+
+    // Area won't be enriched because area lookup will fail (no area names)
+    const livingRoom = speakers.find((s) => s.entity_id === "media_player.living_room");
+    expect(livingRoom?.area_name).toBeUndefined();
+
+    await new Promise<void>((resolve) => {
+      partialServer.close(() => resolve());
+    });
+  });
+});
