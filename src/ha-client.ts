@@ -1,5 +1,5 @@
 /**
- * Home Assistant REST API client.
+ * Home Assistant REST and WebSocket API client.
  *
  * Token resolution order:
  * 1. HA_TOKEN_CMD - command that prints token to stdout
@@ -8,11 +8,16 @@
  * Security:
  * - Never logs tokens or large payloads
  * - Redacts Authorization header in error messages
+ *
+ * WebSocket:
+ * - Required for services with response.optional: false (e.g., search, get_library)
+ * - Maintains a single connection with automatic reconnection
  */
 
 import { z } from "zod";
 import { execSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
+import WebSocket from "ws";
 
 // --- Zod schemas for HA API responses ---
 
@@ -75,6 +80,30 @@ export type HaEntityRegistryEntry = z.infer<typeof HaEntityRegistryEntrySchema>;
 
 export const HaEntityRegistryResponseSchema = z.array(HaEntityRegistryEntrySchema);
 
+// --- WebSocket message schemas ---
+
+/** Schema for WebSocket result message */
+const WsResultSchema = z.object({
+  id: z.number(),
+  type: z.literal("result"),
+  success: z.boolean(),
+  result: z.unknown().optional(),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+  }).optional(),
+});
+
+/** Schema for service call result with response */
+const WsServiceResponseSchema = z.object({
+  context: z.object({
+    id: z.string(),
+    parent_id: z.string().nullable(),
+    user_id: z.string().nullable(),
+  }).optional(),
+  response: z.unknown(),
+});
+
 // --- Token resolution ---
 
 /**
@@ -128,6 +157,8 @@ export function resolveHaUrl(): string {
 export interface HaClientOptions {
   baseUrl: string;
   token: string;
+  /** Timeout for WebSocket operations in milliseconds (default: 30000) */
+  wsTimeout?: number;
 }
 
 /**
@@ -138,16 +169,32 @@ function redactError(message: string): string {
   return message.replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [REDACTED]");
 }
 
+/** Pending WebSocket request */
+interface WsPendingRequest {
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 /**
- * Home Assistant REST API client.
+ * Home Assistant REST and WebSocket API client.
  */
 export class HaClient {
   private readonly baseUrl: string;
   private readonly token: string;
+  private readonly wsTimeout: number;
+
+  // WebSocket state
+  private ws: WebSocket | null = null;
+  private wsConnecting: Promise<void> | null = null;
+  private wsAuthenticated = false;
+  private wsMsgId = 1;
+  private wsPendingRequests = new Map<number, WsPendingRequest>();
 
   constructor(options: HaClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.token = options.token;
+    this.wsTimeout = options.wsTimeout ?? 30000;
   }
 
   /**
@@ -166,6 +213,8 @@ export class HaClient {
   getBaseUrl(): string {
     return this.baseUrl;
   }
+
+  // --- REST API methods ---
 
   /**
    * Make a GET request to the HA API.
@@ -252,7 +301,7 @@ export class HaClient {
   }
 
   /**
-   * Call a Home Assistant service.
+   * Call a Home Assistant service via REST API.
    *
    * @param domain - Service domain (e.g., "music_assistant")
    * @param service - Service name (e.g., "browse_media")
@@ -288,44 +337,207 @@ export class HaClient {
     return response.json();
   }
 
+  // --- WebSocket API methods ---
+
+  /**
+   * Get the WebSocket URL from the base URL.
+   */
+  private getWsUrl(): string {
+    const url = new URL(this.baseUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/api/websocket";
+    return url.toString();
+  }
+
+  /**
+   * Ensure WebSocket is connected and authenticated.
+   */
+  private async ensureWsConnected(): Promise<void> {
+    // Already connected and authenticated
+    if (this.ws?.readyState === WebSocket.OPEN && this.wsAuthenticated) {
+      return;
+    }
+
+    // Connection in progress, wait for it
+    if (this.wsConnecting) {
+      return this.wsConnecting;
+    }
+
+    // Start new connection
+    this.wsConnecting = this.connectWs();
+    try {
+      await this.wsConnecting;
+    } finally {
+      this.wsConnecting = null;
+    }
+  }
+
+  /**
+   * Connect to HA WebSocket and authenticate.
+   */
+  private connectWs(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const wsUrl = this.getWsUrl();
+      const ws = new WebSocket(wsUrl, {
+        rejectUnauthorized: false, // Allow self-signed certs
+      });
+
+      const connectTimeout = setTimeout(() => {
+        ws.close();
+        reject(new Error("WebSocket connection timeout"));
+      }, this.wsTimeout);
+
+      ws.on("open", () => {
+        // Connection opened, wait for auth_required
+      });
+
+      ws.on("message", (data: Buffer) => {
+        try {
+          const msg = JSON.parse(data.toString()) as {
+            type: string;
+            ha_version?: string;
+            id?: number;
+            success?: boolean;
+            result?: unknown;
+            error?: { code: string; message: string };
+          };
+
+          if (msg.type === "auth_required") {
+            // Send auth
+            ws.send(JSON.stringify({
+              type: "auth",
+              access_token: this.token,
+            }));
+          } else if (msg.type === "auth_ok") {
+            // Authentication successful
+            clearTimeout(connectTimeout);
+            this.ws = ws;
+            this.wsAuthenticated = true;
+            resolve();
+          } else if (msg.type === "auth_invalid") {
+            clearTimeout(connectTimeout);
+            ws.close();
+            reject(new Error("WebSocket authentication failed: invalid token"));
+          } else if (msg.type === "result" && typeof msg.id === "number") {
+            // Handle response for pending request
+            this.handleWsResult(msg as z.infer<typeof WsResultSchema>);
+          }
+        } catch {
+          // Ignore parse errors for non-JSON messages
+        }
+      });
+
+      ws.on("error", (err) => {
+        clearTimeout(connectTimeout);
+        reject(new Error(`WebSocket error: ${redactError(err.message)}`));
+      });
+
+      ws.on("close", () => {
+        this.ws = null;
+        this.wsAuthenticated = false;
+        // Reject all pending requests
+        for (const [id, pending] of this.wsPendingRequests) {
+          clearTimeout(pending.timer);
+          pending.reject(new Error("WebSocket connection closed"));
+          this.wsPendingRequests.delete(id);
+        }
+      });
+    });
+  }
+
+  /**
+   * Handle a WebSocket result message.
+   */
+  private handleWsResult(msg: z.infer<typeof WsResultSchema>): void {
+    const pending = this.wsPendingRequests.get(msg.id);
+    if (!pending) return;
+
+    clearTimeout(pending.timer);
+    this.wsPendingRequests.delete(msg.id);
+
+    if (msg.success) {
+      pending.resolve(msg.result);
+    } else {
+      const error = msg.error ?? { code: "unknown", message: "Unknown error" };
+      pending.reject(new Error(`HA WebSocket error [${error.code}]: ${error.message}`));
+    }
+  }
+
+  /**
+   * Send a WebSocket message and wait for response.
+   */
+  private async sendWsMessage(message: Record<string, unknown>): Promise<unknown> {
+    await this.ensureWsConnected();
+
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error("WebSocket not connected");
+    }
+
+    const id = this.wsMsgId++;
+    const fullMessage = { ...message, id };
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.wsPendingRequests.delete(id);
+        reject(new Error("WebSocket request timeout"));
+      }, this.wsTimeout);
+
+      this.wsPendingRequests.set(id, { resolve, reject, timer });
+      this.ws!.send(JSON.stringify(fullMessage));
+    });
+  }
+
   /**
    * Call a Home Assistant service that returns a response.
    *
-   * Uses the `?return_response` query parameter to get service response data.
-   * This is required for services like music_assistant.search that return data.
+   * Uses WebSocket API with return_response: true.
+   * This is required for services like music_assistant.search that have
+   * response.optional: false in their service definition.
    *
    * @param domain - Service domain (e.g., "music_assistant")
    * @param service - Service name (e.g., "search")
-   * @param data - Service call data
-   * @returns The service_response from the result
+   * @param serviceData - Service call data
+   * @param target - Optional target (entity_id, device_id, area_id)
+   * @returns The response from the service
    */
   async callServiceWithResponse(
     domain: string,
     service: string,
-    data: Record<string, unknown>
+    serviceData: Record<string, unknown>,
+    target?: { entity_id?: string | string[]; device_id?: string | string[]; area_id?: string | string[] }
   ): Promise<unknown> {
-    const url = `${this.baseUrl}/api/services/${domain}/${service}?return_response`;
-    let response: Response;
+    const message: Record<string, unknown> = {
+      type: "call_service",
+      domain,
+      service,
+      service_data: serviceData,
+      return_response: true,
+    };
 
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`HA service call failed: ${redactError(message)}`);
+    if (target) {
+      message.target = target;
     }
 
-    if (!response.ok) {
-      throw new Error(`HA service call returned ${response.status}: ${response.statusText}`);
+    const result = await this.sendWsMessage(message);
+
+    // Parse the result to extract the response
+    const parsed = WsServiceResponseSchema.safeParse(result);
+    if (parsed.success) {
+      return parsed.data.response;
     }
 
-    const result = await response.json() as { service_response?: unknown };
-    return result.service_response;
+    // If it doesn't match expected schema, return raw result
+    return result;
+  }
+
+  /**
+   * Close the WebSocket connection.
+   */
+  closeWs(): void {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+      this.wsAuthenticated = false;
+    }
   }
 }
