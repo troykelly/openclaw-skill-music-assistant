@@ -1,6 +1,6 @@
 {
   "name": "openclaw-skill-music-assistant",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "OpenClaw skill for controlling Home Assistant Music Assistant - browse, search, play, preferences, moods",
   "type": "module",
   "main": "dist/cli.js",
